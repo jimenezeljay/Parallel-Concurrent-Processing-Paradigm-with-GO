@@ -4,15 +4,19 @@ import "fmt"
 
 func main() {
 
-	//basic for loop
-	for i := 0; i < 5; i++ {
-		fmt.Println("Counter:", i)
+	//creating a slice
+	numbers := []int{10, 20, 30, 40, 50}
+
+	//accessing by index
+	fmt.Println("First:", numbers[0])
+	fmt.Println("Last:", numbers[4])
+
+	//looping over a slice with range
+	for index, value := range numbers {
+		fmt.Println("Index:", index, "Value:", value)
 	}
 
-	//for loop acting as a while loop
-	x := 0
-	for x < 3 {
-		fmt.Println("x is:", x)
-		x++
-	}
+	//adding to a slice with append
+	numbers = append(numbers, 60)
+	fmt.Println("After append:", numbers)
 }
