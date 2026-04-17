@@ -34,9 +34,9 @@ func findPrimesSingleThread(limit int) []int {
 	return primes
 }
 
-//worker recieves numbers to check from jobs channel
-//sends confirmed primes back through results channel
-func worker(jobs <-chan int, results chan <- int) {
+// worker recieves numbers to check from jobs channel
+// sends confirmed primes back through results channel
+func worker(jobs <-chan int, results chan<- int) {
 	for n := range jobs {
 		if isPrime(n) {
 			results <- n //send prime back through results channel
@@ -44,12 +44,12 @@ func worker(jobs <-chan int, results chan <- int) {
 	}
 }
 
-func findPrimesParallel(limit in, workerCount int) []int {
-	jobs := make(chan int, limit) //channel to send numbers to workers
+func findPrimesParallel(limit int, workerCount int) []int {
+	jobs := make(chan int, limit)    //channel to send numbers to workers
 	results := make(chan int, limit) //channel to collect primes back
 
 	//launch workerCount goroutines, all listening on jobs channel
-	for w := 0; w < workerCount; w++ {
+	for n := 0; n < workerCount; n++ {
 		jobs <- n
 	}
 	close(jobs) // tells workers no more numbers are coming
@@ -58,7 +58,7 @@ func findPrimesParallel(limit in, workerCount int) []int {
 	primes := []int{}
 	for n := 2; n <= limit; n++ {
 		result := <-results
-		primes = append(primes, results)
+		primes = append(primes, result)
 	}
 	return primes
 }
