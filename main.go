@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math"
+	"sync"
 	"time"
 )
 
@@ -45,12 +46,19 @@ func worker(jobs <-chan int, results chan<- int) {
 }
 
 func findPrimesParallel(limit int, workerCount int) []int {
-	jobs := make(chan int, limit) //channel to send numbers to workers
+	jobs := make(chan int, limit)    //channel to send numbers to workers
 	results := make(chan int, limit) //channel to collect primes back
+
+	//waitgroup tracks when all workers are done
+	var wg sync.WaitGroup
 
 	//launch workerCount goroutines, all listening on jobs channel
 	for w := 0; w < workerCount; w++ {
-		go worker(jobs, results)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			worker(jobs, results)
+		}()
 	}
 
 	//send all numbers to jobs channel
@@ -59,18 +67,17 @@ func findPrimesParallel(limit int, workerCount int) []int {
 	}
 	close(jobs) // no more jobs to send
 
+	//once all workers finish, close results
+	go func() {
+		wg.Wait() //wait for all workers to finish
+		close(results)
+	}()
+
 	//collect results - use a counter instead of fixed loop
 	primes := []int{}
-	for i := 0; i < workerCount; i++ {
-		go func() {
-			for p := range results {
-				primes = append(primes, p)
-			}
-		}()
+	for p := range results {
+		primes = append(primes, p)
 	}
-
-	//wait for all workers to finish
-	time.Sleep(2 * time.Second)
 
 	return primes
 }
