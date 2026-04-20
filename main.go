@@ -8,7 +8,8 @@ import (
 )
 
 // isPrime checks if a single number is prime
-// a number is prime if it's only divisible by 1 and itself
+// it only checks divisors up to the square root of n,
+// which is a standard math optimization to reduce unnecessary checks
 func isPrime(n int) bool {
 	if n < 2 {
 		return false
@@ -24,6 +25,8 @@ func isPrime(n int) bool {
 }
 
 // findPrimesSingleThreaded finds all primes up to a limit, one at a time
+// this is the baseline single-threaded version - no parallelism
+// every number is checked sequentially, one after another
 func findPrimesSingleThread(limit int) []int {
 	primes := []int{} //empty slice to store results
 
@@ -35,8 +38,9 @@ func findPrimesSingleThread(limit int) []int {
 	return primes
 }
 
-// worker recieves numbers to check from jobs channel
+// worker is a goroutine func that recieves numbers to check from jobs channel
 // sends confirmed primes back through results channel
+// multiple workers run simultanesously, each pulling from the same job channel until it's closed
 func worker(jobs <-chan int, results chan<- int) {
 	for n := range jobs {
 		if isPrime(n) {
@@ -45,6 +49,9 @@ func worker(jobs <-chan int, results chan<- int) {
 	}
 }
 
+// findPrimesParallel distributes the prime-checking workload across multiple goroutines
+// it ues two channels: jobs (send numbers to workers) and results (collects primes back)
+// a WaitGroup ensures main() waits for ALL workers to finish before collecting results
 func findPrimesParallel(limit int, workerCount int) []int {
 	jobs := make(chan int, limit)    //channel to send numbers to workers
 	results := make(chan int, limit) //channel to collect primes back
@@ -61,11 +68,11 @@ func findPrimesParallel(limit int, workerCount int) []int {
 		}()
 	}
 
-	//send all numbers to jobs channel
+	//send every number from 2 to limit into the job channel
 	for n := 2; n <= limit; n++ {
 		jobs <- n
 	}
-	close(jobs) // no more jobs to send
+	close(jobs) //signal workers no more numbers are coming
 
 	//once all workers finish, close results
 	go func() {
@@ -73,7 +80,7 @@ func findPrimesParallel(limit int, workerCount int) []int {
 		close(results)
 	}()
 
-	//collect results - use a counter instead of fixed loop
+	//collect all primes sent back through the results channel
 	primes := []int{}
 	for p := range results {
 		primes = append(primes, p)
@@ -83,30 +90,31 @@ func findPrimesParallel(limit int, workerCount int) []int {
 }
 
 func main() {
-	limit := 1000000 //we'll find all primes up to this limit
-	workerCount := 8 //number of parallel workers to use
+	limit := 5000000 //find all primes up to 1 million
+	workerCount := 8 //number of parallel goroutines to use
 
-	fmt.Println("----------------------------")
-	fmt.Println("Parallel Prime Number Finder")
-	fmt.Println("----------------------------")
+	fmt.Println("------------------------------------------")
+	fmt.Println("       Parallel Prime Number Finder       ")
+	fmt.Println("------------------------------------------")
+	fmt.Printf("Finding all primes up to %d...\n\n", limit)
 
-	//single-threaded version
-	fmt.Println("--- Single-threaded prime finder ---")
+	// --- Single-Threaded Version ---
+	fmt.Println("=== Single-Threaded ===")
 	start := time.Now()
 	primesSingle := findPrimesSingleThread(limit)
 	singleTime := time.Since(start)
 	fmt.Printf("Found %d primes in %s\n\n", len(primesSingle), singleTime)
 
-	//parallel version
-	fmt.Println("--- Parallel (8 workers) ---")
+	// --- Parallel Version ---
+	fmt.Println("=== Parallel (8 Goroutine Workers) ===")
 	start = time.Now()
 	primesParallel := findPrimesParallel(limit, workerCount)
 	parallelTime := time.Since(start)
 	fmt.Printf("Found %d primes in %s\n\n", len(primesParallel), parallelTime)
 
-	//comparison
+	// --- Performance Comparison ---
 	fmt.Println("------------------------------------------")
-	fmt.Printf("Speedup: %.2fx faster with parallel\n",
+	fmt.Printf("  Speedup: %.2fx faster with parallel\n",
 		float64(singleTime)/float64(parallelTime))
 	fmt.Println("------------------------------------------")
 }
