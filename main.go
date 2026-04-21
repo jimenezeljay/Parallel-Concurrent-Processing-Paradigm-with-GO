@@ -90,7 +90,7 @@ func findPrimesParallel(limit int, workerCount int) []int {
 }
 
 func main() {
-	limit := 5000000 //find all primes up to 1 million
+	limit := 5000000 //find all primes up to 5 million
 	workerCount := 8 //number of parallel goroutines to use
 
 	fmt.Println("------------------------------------------")
